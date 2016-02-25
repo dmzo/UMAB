@@ -1,10 +1,6 @@
 'MILES TAG
 'Universal Medic/Ammo Box v0.2
-'Revision Date: 17 февраля 2016
-'-------------------------------------------------------------
-'Добавлена возможность настройки количества здоровья и патронов,
-'посылаемых за раз. 
-'
+'Revision Date: 25 февраля 2016
 '-------------------------------------------------------------
 'Written for PICBasic Pro Compiler version 2.50 (www.melabs.com)
 'Processor=PIC16F684  (MCLR=OFF; OSC=INTRC)
@@ -27,45 +23,44 @@ mtspace     CON 600
 '******************** DEFINE VARIABLES ***********************
 '*************************************************************
 '*************************************************************
-bit_counter 	VAR BYTE
+bit_counter 		VAR BYTE
 databyte 		VAR BYTE	
-message         VAR BYTE
+message         	VAR BYTE
 message_ID		VAR BYTE
 
 TEMP			VAR BYTE
-AMOUNT          var byte    'Временная переменная для количества
-RATE            var byte
+AMOUNT          	var byte    'Временная переменная для количества
+RATE            	var byte
 INC 			var byte
-MAX_CAP         var byte
+MAX_CAP         	var byte
 
-MODE            VAR BYTE
+MODE            	VAR BYTE
 
-AMOUNT_MED      var byte
-AMOUNT_AMMO     var byte
-AMOUNT_AIDKIT   var byte
+AMOUNT_MED      	var byte
+AMOUNT_AMMO     	var byte
+AMOUNT_AIDKIT   	var byte
 
 CAP_MED			var byte
 CAP_AMMO		var byte
 
-RATE_MED        var byte
-RATE_AMMO       var byte
-RATE_AIDKIT     var byte
-RATE_AIDKIT_INF var byte
+RATE_MED        	var byte
+RATE_AMMO       	var byte
+RATE_AIDKIT     	var byte
+RATE_AIDKIT_INF 	var byte
 
 STEP_MED		var byte
 STEP_AMMO		var byte
 STEP_AIDKIT		var byte
 
 '*************************************************************
-'*************************************************************
 '******************** PIN ASSIGNMENTS ************************
 '*************************************************************
-'*************************************************************
-Symbol CLCK 	    = PORTA.5			'Счётчик +1
-Symbol RST       	= PORTA.4			'Сброс дисплеев
-Symbol BTN       	= PORTA.2			'Кнопка
-Symbol DOT2         = PORTC.1           'Точка на правом индикаторе
-SYMBOL DOT1         = PORTC.2           'Точка на левом индикаторе
+
+Symbol CLCK 	    	= PORTA.5		'Счётчик +1
+Symbol RST       	= PORTA.4		'Сброс дисплеев
+Symbol BTN       	= PORTA.2		'Кнопка
+Symbol DOT2         	= PORTC.1           	'Точка на правом индикаторе
+SYMBOL DOT1         	= PORTC.2           	'Точка на левом индикаторе
 Symbol PIEZO 		= PORTC.0         	'Зуммер
 Symbol IRLED 		= PORTC.5         	'ИК-светодиод
 
@@ -73,35 +68,35 @@ Symbol IRLED 		= PORTC.5         	'ИК-светодиод
 '-- Резервные порты ---------------------------------------------
 '----------------------------------------------------------------
 
-Symbol REZERV1      = PORTA.0           'Зарезервировано
-Symbol REZERV2      = PORTA.1           'Зарезервировано
-	
-'*************************************************************
+Symbol REZERV1      	= PORTA.0           	'Зарезервировано
+Symbol REZERV2      	= PORTA.1           	'Зарезервировано
+
 '*************************************************************
 '******************** INITIALIZATION *************************
 '*************************************************************
-'*************************************************************
+
 'initialize:
-	OSCCON = %01111000
-	CMCON0 = 7				'turn off comparators
-	ANSEL = 0
-	
-	PR2 = 35				'PWM Period (40K=49, 56K=35) (35 to 55)
-	CCPR1L = 15				'PWM Duty Cycle (1 to 15)
-	T2CON = 4				'Timer2 = ON; Prescale = 1:1
-	CCP1CON = 0				'PWM module off
-	OPTION_REG = %000111	'Turn PortA weak pull-ups
-	
-	TRISA = %000111    		'set PortA directions
-	WPUA =  %000111			'enable weak pull-ups PortA
-	IOCA =  %000000			'disable PORTA.0 Int On Change
 
-    input PORTA.2
-
-    TRISC = %000000    		'set PortC directions
+OSCCON = %01111000
+CMCON0 = 7				'turn off comparators
+ANSEL = 0
 	
-	PORTA = %000000			'обнуление значений PortA
-	PORTC = %000000    		'обнуление значений PortC
+PR2 = 35				'PWM Period (40K=49, 56K=35) (35 to 55)
+CCPR1L = 15				'PWM Duty Cycle (1 to 15)
+T2CON = 4				'Timer2 = ON; Prescale = 1:1
+CCP1CON = 0				'PWM module off
+OPTION_REG = %000111			'Turn PortA weak pull-ups
+	
+TRISA = %000111    			'set PortA directions
+WPUA =  %000111				'enable weak pull-ups PortA
+IOCA =  %000000				'disable PORTA.0 Int On Change
+
+input PORTA.2
+
+TRISC = %000000    				'set PortC directions
+	
+PORTA = %000000				'обнуление значений PortA
+PORTC = %000000    			'обнуление значений PortC
      
 '*************************************************************	
 '*************************************************************
@@ -110,26 +105,26 @@ Symbol REZERV2      = PORTA.1           'Зарезервировано
 '*************************************************************
 start:
 
-    gosub read_settings
-    gosub clear_screen
+gosub read_settings
+gosub clear_screen
 
 '----------------------------------------------------------------	
 '-- Если кнопка нажата не менее 1 сек, то сигнализируем звуком 
 '-- и переходим к процедуре настройки универсальной коробки
 '----------------------------------------------------------------
 	
-    if btn = 0 then
-        for temp = 1 to 100
-            if btn = 1 then main
-            pause 10
+if btn = 0 then
+	for temp = 1 to 100
+		if btn = 1 then main
+		pause 10
         next temp
         high PIEZO          
         PAUSE 1000          
         LOW PIEZO
         goto settings     
-    else 
+else 
         goto main
-    endif        
+endif        
 	
 main:    
 
@@ -138,13 +133,13 @@ main:
 '-- выводим на индикаторы значение текущего режима коробки ------
 '----------------------------------------------------------------
 
-    amount = mode
-    gosub print_current
-    high PIEZO          
-	PAUSE 200          
-	LOW PIEZO
-    pause 800
-    gosub clear_screen
+amount = mode
+gosub print_current
+high PIEZO          
+PAUSE 200          
+LOW PIEZO
+pause 800
+gosub clear_screen
 
 '----------------------------------------------------------------
 '-- В зависимости от установленного режима коробки устанавливаются
@@ -152,33 +147,33 @@ main:
 '-- коробкой сигналов  ------------------------------------------
 '----------------------------------------------------------------
 	
-    select case mode
-        case 1
-            message_ID = 0                          'Идентификатор медика
-            message = cap_med						'Устанавливаем количество здоровья, посылаемое за раз
-			amount = amount_med						'Устаналиваем ёмкость сумки
-            rate = rate_med * 100
-            goto universal_box
+select case mode
+	case 1
+		message_ID = 0                          	'Идентификатор медика
+		message = cap_med				'Устанавливаем количество здоровья, посылаемое за раз
+		amount = amount_med		'Устаналиваем ёмкость сумки
+		rate = rate_med * 100
+		goto universal_box
         case 2
-            message_ID = 1                          'Идентификатор ящика с патронами
-            message = cap_ammo
-			amount = amount_ammo
-            rate = rate_ammo * 100
-            goto universal_box
+		message_ID = 1                          	'Идентификатор ящика с патронами
+		message = cap_ammo
+		amount = amount_ammo
+		rate = rate_ammo * 100
+		goto universal_box
         case 3
-            message_ID = 3                          'Идентификатор пульта
-            message = $05                           'Новая игра
-            amount = amount_aidkit
-            rate = rate_aidkit * 100
-            goto universal_box
+		message_ID = 3                          	'Идентификатор пульта
+		message = $05                           	'Новая игра
+		amount = amount_aidkit
+		rate = rate_aidkit * 100
+		goto universal_box
         case 4
-            message_ID = 3                          'идентификатор пульта
-            message = $05                           'Новая игра
-            rate = rate_aidkit_inf * 100                                                      
-            goto aidkit_infinite                          
+		message_ID = 3                          	'идентификатор пульта
+		message = $05                           	'Новая игра
+		rate = rate_aidkit_inf * 100                                                      
+		goto aidkit_infinite                          
         case else
-            goto shutdown
-    end select
+		goto shutdown
+end select
                
 '----------------------------------------------------------------
 '-- Процедура работы в качестве сумки медика, ящика с патронами -
@@ -187,43 +182,72 @@ main:
 
 universal_box:
 
-    gosub clear_screen
-    gosub print_current
+gosub clear_screen
+gosub print_current
 
 button_loop:
 
-    if btn = 0 then
-        if amount > 0 then
-            for temp = 1 to rate
-                if btn = 1 then button_loop
-                pause 10
-            next temp
-            amount = amount - 1
-            gosub send_message
-            goto universal_box
-        else 
-            goto shutdown
-        endif
-    endif
-    nap 3
-    goto button_loop
+select case rate
+	case 0
+		if btn = 0 then
+			if amount > 0 then
+				while btn = 0 
+					pause 50
+				wend
+				amount = amount - 1
+				gosub send_message
+				goto universal_box
+			else
+				goto shutdown
+			endif
+		endif
+		nap 3
+		goto button_loop
+    	case else
+		if btn = 0 then
+			if amount > 0 then
+				for temp = 1 to rate
+					if btn = 1 then button_loop
+					pause 10
+				next temp
+				amount = amount - 1
+				gosub send_message
+				goto universal_box
+			else 
+				goto shutdown
+			endif
+		endif
+		nap 3
+		goto button_loop    	
+end select
 
 '----------------------------------------------------------------
 '-- Процедура работы в качестве бесконечной точки возрождения ---
 '----------------------------------------------------------------
 	
 aidkit_infinite:
-
-    IF btn = 0 THEN                         
-        for temp = 1 to rate
-            if btn = 1 then aidkit_infinite
-            pause 10
-        next temp							
-        gosub send_message
-        goto aidkit_infinite 
-    ENDIF
-    nap 3
-    goto aidkit_infinite
+    
+select case rate
+	case 0
+		if btn = 0 then
+			while btn = 0 
+				pause 50
+			wend
+			gosub send_message
+			nap 3
+			goto aidkit_infinite
+    	case else
+		IF btn = 0 THEN                         
+			for temp = 1 to rate
+				if btn = 1 then aidkit_infinite
+				pause 10
+			next temp							
+			gosub send_message
+			goto aidkit_infinite 
+		ENDIF
+		nap 3
+		goto aidkit_infinite    	
+end select 
 
 '----------------------------------------------------------------	
 '-- Процедура настройки универсальной коробки -------------------
@@ -231,8 +255,8 @@ aidkit_infinite:
     
 settings:						'Предварительные настройки
 
-    high dot1					'Зажигаем правую точку для индикации режима настройки
-    amount = mode
+high dot1						'Зажигаем правую точку для индикации режима настройки
+amount = mode
     
 setting_mode:
 
@@ -240,8 +264,8 @@ setting_mode:
 '-- Выводим на дисплей значение текущего режима -----------------
 '----------------------------------------------------------------
 
-    gosub clear_screen
-    gosub print_current
+gosub clear_screen
+gosub print_current
 
 set_mode_btn_loop:
 
@@ -251,27 +275,27 @@ set_mode_btn_loop:
 '-- текущее значение режима в память ----------------------------
 '----------------------------------------------------------------
 
-    if btn = 0 then
-  	    FOR temp = 1 to 100			
-            IF btn = 1 THEN 
-                if amount = 4 then 
-                    amount = 1
-                else 
-                    amount = amount + 1
-                endif
-                goto setting_mode
-            endif
-            PAUSE 10
-        NEXT temp
-        mode = amount
-        write 0,amount
-        high PIEZO          
-        PAUSE 200          
-        LOW PIEZO
-        goto pre_setting_amount
-    endif
-    nap 3
-	goto set_mode_btn_loop
+if btn = 0 then
+	FOR temp = 1 to 100			
+		IF btn = 1 THEN 
+			if amount = 4 then 
+				amount = 1
+			else 
+				amount = amount + 1
+                	endif
+                	goto setting_mode
+            	endif
+            	PAUSE 10
+	NEXT temp
+	mode = amount
+	write 0,amount
+	high PIEZO          
+	PAUSE 200          
+	LOW PIEZO
+	goto pre_setting_amount
+endif
+nap 3
+goto set_mode_btn_loop
 
 '----------------------------------------------------------------
 '-- Процедура настройки количества медпакетов, патронов, --------
@@ -280,16 +304,16 @@ set_mode_btn_loop:
 
 pre_setting_amount:
 
-    select case mode
-        case 1                          'Режим сумки медика
-            amount = amount_med
-        case 2                          'Режим ящика с патронами
-            amount = amount_ammo
-        case 3                          'Точка возрождения с количеством
-            Amount = amount_aidkit
-        case 4                          'Точка возрождения бесконечная
-            goto pre_setting_rate                          
-    end select         
+select case mode
+	case 1                          		'Режим сумки медика
+		amount = amount_med
+	case 2                          		'Режим ящика с патронами
+		amount = amount_ammo
+	case 3                          		'Точка возрождения с количеством
+		Amount = amount_aidkit
+	case 4                          		'Точка возрождения бесконечная
+		goto pre_setting_rate                          
+end select         
 
 setting_amount:
 
@@ -299,9 +323,9 @@ setting_amount:
 '-- выбранного режима) ------------------------------------------
 '----------------------------------------------------------------
 
-    gosub clear_screen
-    gosub print_current
-    pause 200
+gosub clear_screen
+gosub print_current
+pause 200
     
 set_amount_btn_loop:
 
@@ -311,26 +335,26 @@ set_amount_btn_loop:
 '-- текущее значение количества в память ------------------------
 '----------------------------------------------------------------
 
-    if btn = 0 then
-  	    FOR temp = 1 to 100			
-            IF btn = 1 THEN 
-                if amount >= 99 then 
-                    amount = 1
-                else 
-                    amount = amount + 1
-                endif
+if btn = 0 then
+	FOR temp = 1 to 100			
+		IF btn = 1 THEN 
+			if amount >= 99 then 
+				amount = 1
+                	else 
+				amount = amount + 1
+                	endif
                 goto setting_amount
-            endif
-            PAUSE 10
+            	endif
+		PAUSE 10
         NEXT temp
         write mode,amount
         high PIEZO          
         PAUSE 200          
         LOW PIEZO
         goto pre_setting_rate
-    endif
-    nap 3
-	goto set_amount_btn_loop
+endif
+nap 3
+goto set_amount_btn_loop
 
 '----------------------------------------------------------------	
 '-- Процедура настройки длительности нажатия кнопки -------------
@@ -338,16 +362,16 @@ set_amount_btn_loop:
 
 pre_setting_rate:
 
-    select case mode
-        case 1                          'Режим сумки медика
-            amount = rate_med
-        case 2                          'Режим ящика с патронами
-            amount = rate_ammo
-        case 3                          'Точка возрождения с количеством
-            Amount = rate_aidkit
-        case 4                          'Точка возрождения бесконечная
-            amount = rate_aidkit_inf                          
-    end select
+select case mode
+	case 1                          		'Режим сумки медика
+		amount = rate_med
+	case 2                          		'Режим ящика с патронами
+		amount = rate_ammo
+	case 3                          		'Точка возрождения с количеством
+		Amount = rate_aidkit
+	case 4                          		'Точка возрождения бесконечная
+		amount = rate_aidkit_inf                          
+end select
 
 setting_rate:
 
@@ -357,9 +381,9 @@ setting_rate:
 '-- выбранного режима) ------------------------------------------
 '----------------------------------------------------------------
 
-    gosub clear_screen
-    gosub print_current
-    pause 200
+gosub clear_screen
+gosub print_current
+pause 200
     
 set_rate_btn_loop:
 
@@ -369,17 +393,17 @@ set_rate_btn_loop:
 '-- текущее значение количества в память ------------------------
 '----------------------------------------------------------------
 
-    if btn = 0 then
-  	    FOR temp = 1 to 100			'
-            IF btn = 1 THEN 
-                if amount = 5 then 
-                    amount = 0
-                else 
-                    amount = amount + 1
-                endif
-                goto setting_rate
-            endif
-            PAUSE 10
+if btn = 0 then
+	FOR temp = 1 to 100			'
+		IF btn = 1 THEN 
+			if amount = 5 then 
+				amount = 0
+			else 
+				amount = amount + 1
+			endif
+			goto setting_rate
+		endif
+		PAUSE 10
         NEXT temp
         temp = mode + 3
         write temp,amount
@@ -387,9 +411,9 @@ set_rate_btn_loop:
         PAUSE 200          
         LOW PIEZO
         goto pre_setting_capacity
-    endif
-    nap 3
-	goto set_rate_btn_loop
+endif
+nap 3
+goto set_rate_btn_loop
 
 
 '----------------------------------------------------------------	
@@ -399,20 +423,20 @@ set_rate_btn_loop:
 
 pre_setting_capacity:
 
-    select case mode
-        case 1                          'Режим сумки медика
-            amount = cap_med
-            max_cap = 5
-            inc = 1
-        case 2                          'Режим ящика с патронами
-            amount = cap_ammo
-            max_cap = 90
-            inc = 30
-        case 3                          'Точка возрождения с количеством
-            goto end_of_settings
-        case 4                          'Точка возрождения бесконечная
-            goto end_of_settings                          
-    end select
+select case mode
+	case 1                          		'Режим сумки медика
+		amount = cap_med
+		max_cap = 5
+		inc = 1
+	case 2                          		'Режим ящика с патронами
+		amount = cap_ammo
+		max_cap = 90
+		inc = 30
+	case 3                          		'Точка возрождения с количеством
+		goto end_of_settings
+	case 4                          		'Точка возрождения бесконечная
+		goto end_of_settings                          
+end select
 
 setting_capacity:
 
@@ -422,9 +446,9 @@ setting_capacity:
 '-- выбранного режима) ------------------------------------------
 '----------------------------------------------------------------
 
-    gosub clear_screen
-    gosub print_current
-    pause 200
+gosub clear_screen
+gosub print_current
+pause 200
     
 set_cap_btn_loop:
 
@@ -434,24 +458,24 @@ set_cap_btn_loop:
 '-- текущее значение количества в память ------------------------
 '----------------------------------------------------------------
 
-    if btn = 0 then
-  	    FOR temp = 1 to 100			'
-            IF btn = 1 THEN 
-                if amount >= max_cap then 
-                    amount = inc
-                else 
-                    amount = amount + inc
-                endif
-                goto setting_capacity
-            endif
-            PAUSE 10
-        NEXT temp
-        temp = mode + 7
-        write temp,amount
-        goto end_of_settings
-    endif
-    nap 3
-	goto set_cap_btn_loop
+if btn = 0 then
+	FOR temp = 1 to 100			'
+		IF btn = 1 THEN 
+			if amount >= max_cap then 
+				amount = inc
+			else 
+				amount = amount + inc
+			endif
+			goto setting_capacity
+		endif
+		PAUSE 10
+	NEXT temp
+	temp = mode + 7
+	write temp,amount
+	goto end_of_settings
+endif
+nap 3
+goto set_cap_btn_loop
 
 '----------------------------------------------------------------	
 '-- Процедура настройки количества выдаваемых за раз ------------
@@ -461,13 +485,13 @@ set_cap_btn_loop:
 'pre_setting_step:
 
 '    select case mode
-'        case 1                          'Режим сумки медика
+'        case 1                          		'Режим сумки медика
 '            amount = step_med
-'        case 2                          'Режим ящика с патронами
+'        case 2                          		'Режим ящика с патронами
 '            amount = step_ammo
-'        case 3                          'Точка возрождения с количеством
+'        case 3                          		'Точка возрождения с количеством
 '            amount = step_aidkit
-'        case 4                          'Точка возрождения бесконечная
+'        case 4                          		'Точка возрождения бесконечная
 '            goto end_of_settings                          
 '    end select
 
@@ -515,62 +539,63 @@ set_cap_btn_loop:
 '----------------------------------------------------------------
     
 end_of_settings:
-    gosub clear_screen
-    high dot2
-    goto shutdown 
+
+gosub clear_screen
+high dot2
+goto shutdown 
 
 '---------------------------------------------------------------------------
 
-read_settings:              'Чтение настроек из EEPROM
+read_settings:              		'Чтение настроек из EEPROM
 
-    read 0,mode             'Режим  1 - Сумка медика; 
-                            '       2 - Ящик с патронами; 
-                            '       3 - Точка воздрождения с количеством; 
-                            '       4 - Точка возрождения бесконечная.
-    read 1,amount_med       'Ёмкость сумки медика (MODE)
-    read 2,amount_ammo      'Ёмкость ящика с патронами (MODE)
-    read 3,AMOUNT_AIDKIT    'Количество возрождений (MODE)
-    read 4,rate_med         'Длительность нажатия кнопки для сумки медика (MODE+3)
-    read 5,rate_ammo        'Длительность нажатия кнопки для ящика с патронами (MODE+3)
-    read 6,rate_aidkit      'Длительность нажатия кнопки для точки возрождения с количеством срабатываний (MODE+3)
-    read 7,rate_aidkit_inf  'Длительность нажатия кнопки для точки возрождения бесконечной (MODE+3)
-	read 8,cap_med			'Количество единиц, выдаваемых сумкой медика за раз (mode+7)
-	read 9,cap_ammo			'Количество единиц, выдаваемых ящиком патронов за раз (mode+7)
+read 0,mode             		'Режим  1 - Сумка медика; 
+                            		'       2 - Ящик с патронами; 
+                            		'       3 - Точка воздрождения с количеством; 
+                            		'       4 - Точка возрождения бесконечная.
+read 1,amount_med       		'Ёмкость сумки медика (MODE)
+read 2,amount_ammo      		'Ёмкость ящика с патронами (MODE)
+read 3,AMOUNT_AIDKIT    		'Количество возрождений (MODE)
+read 4,rate_med         		'Длительность нажатия кнопки для сумки медика (MODE+3)
+read 5,rate_ammo        		'Длительность нажатия кнопки для ящика с патронами (MODE+3)
+read 6,rate_aidkit      		'Длительность нажатия кнопки для точки возрождения с количеством срабатываний (MODE+3)
+read 7,rate_aidkit_inf  		'Длительность нажатия кнопки для точки возрождения бесконечной (MODE+3)
+read 8,cap_med				'Количество единиц, выдаваемых сумкой медика за раз (mode+7)
+read 9,cap_ammo				'Количество единиц, выдаваемых ящиком патронов за раз (mode+7)
 '	read 10,step_med		'Шаг в настройке ёмкости сумки медика (mode+9)
 '	read 11,step_ammo		'Шаг в настройке ёмкости ящика с патронами (mode+9)
 '	read 12,step_aidkit		'Шаг в настройке ёмкости точки возрождения с количеством срабатываний (mode+9)	
-    return        
+return        
 
 '---------------------------------------------------------------------------	
 	
 clear_screen:   			'Сброс индикаторов
 
-    HIGH RST            
-    LOW RST
-    return
+HIGH RST            
+LOW RST
+return
 
 '---------------------------------------------------------------------------	
     
 print_current:  			'Установка на индикаторах текущего значения переменной AMOUNT
 
-    temp = 0
-    FOR TEMP = 1 to amount
-        HIGH CLCK
-        LOW CLCK
-    NEXT TEMP
-    return    
+temp = 0
+FOR TEMP = 1 to amount
+	HIGH CLCK
+	LOW CLCK
+NEXT TEMP
+return    
 
 '---------------------------------------------------------------------------	
 	
-shutdown:					'Остановка программы и перевод МК в режим энергосбережения
+shutdown:				'Остановка программы и перевод МК в режим энергосбережения
 
-    for temp = 1 to 3
-        high piezo
-        pause 300
-        low piezo
-        pause 100
-    next temp
-    stop    
+for temp = 1 to 3
+	high piezo
+	pause 300
+	low piezo
+	pause 100
+next temp
+stop    
 
 '*************************************************************	
 '*************************************************************
@@ -578,50 +603,59 @@ shutdown:					'Остановка программы и перевод МК в �
 '*************************************************************
 '*************************************************************
 send_message:					'send 24 bits 
-    high piezo                 
-	PAUSE 100          
-	LOW piezo
+
+high piezo                 
+PAUSE 100          
+LOW piezo
      
-	CCP1CON = 12				'send MT header pulse (2.4mS)
-    	pauseus mtheader  
-	CCP1CON = 0
+CCP1CON = 12				'send MT header pulse (2.4mS)
+pauseus mtheader  
+CCP1CON = 0
 
 message_first_byte:
-	databyte = message_ID | %10000000     		'(packet_ID=1; sys_msg)  
-	GoSub send_byte
+
+databyte = message_ID | %10000000     		'(packet_ID=1; sys_msg)  
+GoSub send_byte
 
 message_second_byte:
-	databyte = message 			      
-	GoSub send_byte
+
+databyte = message 			      
+GoSub send_byte
 
 message_third_byte:
-	databyte = protocol
-	GoSub send_byte
+
+databyte = protocol
+GoSub send_byte
 	
-	return
+return
 
 '-----------------------------------------------------------
 send_byte:						'send 8 bits (databyte)
-	For bit_counter = 1 TO 8	'send 8 data bits MSB first
-        	pauseus mtspace     'send space -- space between data pulses  
-		IF databyte.7 = 1 Then trans1
-			CCP1CON = 12		'send zero
-            	pauseus mtbit0  
-			CCP1CON = 0
-			@ rlf	_databyte,F		
-		GoTo bypassx
+
+For bit_counter = 1 TO 8	'send 8 data bits MSB first
+	pauseus mtspace     'send space -- space between data pulses  
+	IF databyte.7 = 1 Then trans1
+	CCP1CON = 12		'send zero
+	pauseus mtbit0  
+	CCP1CON = 0
+	@ rlf	_databyte,F		
+	GoTo bypassx
+
 trans1:
-			CCP1CON = 12		'send one
-            	pauseus mtbit1
-			CCP1CON = 0	
-			@ rlf	_databyte,F		
+
+	CCP1CON = 12		'send one
+	pauseus mtbit1
+	CCP1CON = 0	
+	@ rlf	_databyte,F		
+
 bypassx:
-	Next bit_counter
+
+Next bit_counter
 	
-	Return
+Return
 
 '******************************************************
 
-	End
+End
 
 
