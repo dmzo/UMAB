@@ -193,18 +193,19 @@ button_loop:
 
 select case rate
 	case 0
-		if btn = 0 then
+		if (btn = 0) and (flag = 0) then
 			if amount > 0 then
-				while btn = 0 
-					pause 50
-				wend
+				flag = 1
 				amount = amount - 1
 				gosub send_message
-				goto universal_box
 			else
 				goto shutdown
 			endif
 		endif
+		if (btn = 1) and (flag = 1) then
+			flag = 0
+			goto universal_box
+		endif		
 		nap 3
 		goto button_loop
     	case else
