@@ -154,8 +154,8 @@ gosub clear_screen
 select case mode
 	case 1
 		message_ID = 0                          	'Идентификатор медика
-		message = cap_med				'Устанавливаем количество здоровья, посылаемое за раз
-		amount = amount_med		'Устаналиваем ёмкость сумки
+		lookup cap_med,[1,5,10,25,50],message		'Устанавливаем количество здоровья, посылаемое за раз
+		amount = amount_med				'Устаналиваем ёмкость сумки
 		rate = rate_med * 100
 		goto universal_box
         case 2
@@ -434,10 +434,14 @@ pre_setting_capacity:
 select case mode
 	case 1                          		'Режим сумки медика
 		amount = cap_med
-		max_cap = 5
+		def_cap = cap_med
+		min_cap = 0
+		max_cap = 4				' 0 = 1; 1 = 5; 2 = 10; 3 = 25; 4 = 50
 		inc = 1
 	case 2                          		'Режим ящика с патронами
 		amount = cap_ammo
+		def_cap = cap_ammo
+		min_cap = 30
 		max_cap = 90
 		inc = 30
 	case 3                          		'Точка возрождения с количеством
@@ -470,7 +474,7 @@ if btn = 0 then
 	FOR temp = 1 to 100			'
 		IF btn = 1 THEN 
 			if amount >= max_cap then 
-				amount = inc
+				amount = min_cap
 			else 
 				amount = amount + inc
 			endif
@@ -478,8 +482,11 @@ if btn = 0 then
 		endif
 		PAUSE 10
 	NEXT temp
-	temp = mode + 7
-	write temp,amount
+	
+	if amount <> def_cap then
+		temp = mode + 7
+		write temp,amount
+	endif
 	goto end_of_settings
 endif
 nap 3
