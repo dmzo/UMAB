@@ -1,6 +1,6 @@
 'MILES TAG
-'Universal Medic/Ammo Box v0.3.1
-'Revision Date: 15 Jun 2016
+'Universal Medic/Ammo Box v0.4_pre_alpha
+'Revision Date: 28 Jun 2016
 '-------------------------------------------------------------
 'Written for PICBasic Pro Compiler version 2.50 (www.melabs.com)
 'Processor=PIC16F684  (MCLR=OFF; OSC=INTRC)
@@ -23,36 +23,34 @@ mtspace     CON 600
 '******************** DEFINE VARIABLES ***********************
 '*************************************************************
 '*************************************************************
-bit_counter 		VAR BYTE
+bit_counter 		VAR BYTE	
 databyte 		VAR BYTE	
 message         	VAR BYTE
 message_ID		VAR BYTE
 
-TEMP			VAR BYTE
-AMOUNT          	var byte    'Временная переменная для количества
-RATE            	var byte
-INC 			var byte
-MAX_CAP         	var byte
+TEMP			VAR BYTE	'Временная переменная для всего
+AMOUNT          	var byte	'Временная переменная для количества
+RATE            	var byte	'Временная переменная для длительности удержания кнопки
+INC 			var byte	'Шаг увеличения
+def_cap			var byte	'Записанное в ЕЕПРОМ значение выдаваемых за раз медика/патронов
+min_cap			var byte	'Минимальное значение выдаваемых за раз медика/патронов
+MAX_CAP         	var byte	'Максимальное значение выдаваемых за раз медика/патронов
 
-flag			var byte
+flag			var byte	'Кнопка нажата/отпущена
 
-MODE            	VAR BYTE
+MODE            	VAR BYTE	'Режим работы коробки
 
-AMOUNT_MED      	var byte
-AMOUNT_AMMO     	var byte
-AMOUNT_AIDKIT   	var byte
+AMOUNT_MED      	var byte	'
+AMOUNT_AMMO     	var byte	'
+AMOUNT_AIDKIT   	var byte	'
 
-CAP_MED			var byte
-CAP_AMMO		var byte
+CAP_MED			var byte	'Кол-во выдаваемых за раз жизней
+CAP_AMMO		var byte	'Кол-во выдаваемых за раз патронов
 
-RATE_MED        	var byte
-RATE_AMMO       	var byte
-RATE_AIDKIT     	var byte
-RATE_AIDKIT_INF 	var byte
-
-STEP_MED		var byte
-STEP_AMMO		var byte
-STEP_AIDKIT		var byte
+RATE_MED        	var byte	'Время удержания кнопки в режиме Медика
+RATE_AMMO       	var byte	'Время удержания кнопки в режиме Ящик с патронами
+RATE_AIDKIT     	var byte	'Время удержания кнопки в режиме конечной аптечки
+RATE_AIDKIT_INF 	var byte	'Время удержания кнопки в режиме бесконечной аптечки
 
 '*************************************************************
 '******************** PIN ASSIGNMENTS ************************
@@ -95,7 +93,7 @@ IOCA =  %000000				'disable PORTA.0 Int On Change
 
 input PORTA.2
 
-TRISC = %000000    				'set PortC directions
+TRISC = %00000				'set PortC directions
 	
 PORTA = %000000				'обнуление значений PortA
 PORTC = %000000    			'обнуление значений PortC
