@@ -33,6 +33,7 @@ message_ID		VAR BYTE
 TEMP			VAR BYTE	'Временная переменная для всего
 TEMP2			var byte	'Временная переменная для вывода значения на индикаторы
 AMOUNT          	var byte	'Временная переменная для количества
+temp_amount		var byte	'Временная переменная
 
 
 '-- Переменные для процедуры настройки устройства -------------
@@ -46,6 +47,7 @@ addr			var byte	'Адрес записи значений в ЕЕПРОМ
 
 '-- Переменные для работы устройства -------------
 
+setup			var byte	'0 - обычный режим; 1 - режим настройки
 flag			var byte	'Кнопка нажата/отпущена
 MODE            	VAR BYTE	'Режим работы коробки
 AMOUNT_MED      	var byte	'
@@ -141,6 +143,7 @@ main:
 '-- выводим на индикаторы значение текущего режима коробки ------
 '----------------------------------------------------------------
 
+setup = 0
 amount = mode
 gosub print_current
 high PIEZO          
@@ -268,6 +271,7 @@ end select
 settings:						'Предварительные настройки
 
 high dot1						'Зажигаем правую точку для индикации режима настройки
+setup = 1
 addr = 0
 amount = mode
 min_value = 1
@@ -436,7 +440,7 @@ return
 print_current:  			'Установка на индикаторах текущего значения переменной AMOUNT
 
 temp = 0
-if addr = 15 then
+if (setup = 1) and (mode = 1) then
 	lookup amount,[1,5,10,25,50],temp_amount
 	temp2 = temp_amount
 else
