@@ -1,15 +1,14 @@
 'MILES TAG
-'Universal Medic/Ammo Box v0.3.1
-'Revision Date: 15 Jun 2016
+'Universal Medic/Ammo Box v0.4_alpha_release
+'Revision Date: 09 Aug 2016
 '-------------------------------------------------------------
 'Written for PICBasic Pro Compiler version 2.50 (www.melabs.com)
 'Processor=PIC16F684  (MCLR=OFF; OSC=INTRC)
 
 DEFINE OSC 8
-'*************************************************************	
+
 '*************************************************************
 '******************** DEFINE CONSTANTS ***********************
-'*************************************************************
 '*************************************************************
 protocol    CON 232           '232=MT Core
 
@@ -19,40 +18,47 @@ mtbit1      CON 1200
 mtspace     CON 600
 
 '*************************************************************
-'*************************************************************
 '******************** DEFINE VARIABLES ***********************
 '*************************************************************
-'*************************************************************
-bit_counter 		VAR BYTE
+
+'-- Переменные для посылки сигнала по ИК -------------
+
+bit_counter 		VAR BYTE	
 databyte 		VAR BYTE	
 message         	VAR BYTE
 message_ID		VAR BYTE
 
-TEMP			VAR BYTE
-AMOUNT          	var byte    'Временная переменная для количества
-RATE            	var byte
-INC 			var byte
-MAX_CAP         	var byte
+'-- Временные переменные для процедур и циклов вывода информации -------------
 
-flag			var byte
+TEMP			VAR BYTE	'Временная переменная для всего
+TEMP2			var byte	'Временная переменная для вывода значения на индикаторы
+AMOUNT          	var byte	'Временная переменная для количества
+temp_amount		var byte	'Временная переменная
 
-MODE            	VAR BYTE
 
-AMOUNT_MED      	var byte
-AMOUNT_AMMO     	var byte
-AMOUNT_AIDKIT   	var byte
+'-- Переменные для процедуры настройки устройства -------------
 
-CAP_MED			var byte
-CAP_AMMO		var byte
+RATE            	var byte	'Временная переменная для длительности удержания кнопки
+INC 			var byte	'Шаг увеличения
+def_value		var byte	'Записанное в ЕЕПРОМ значение
+min_value		var byte	'Минимальное значение
+MAX_value		var byte	'Максимальное значение
+addr			var byte	'Адрес записи значений в ЕЕПРОМ
 
-RATE_MED        	var byte
-RATE_AMMO       	var byte
-RATE_AIDKIT     	var byte
-RATE_AIDKIT_INF 	var byte
+'-- Переменные для работы устройства -------------
 
-STEP_MED		var byte
-STEP_AMMO		var byte
-STEP_AIDKIT		var byte
+setup			var byte	'0 - обычный режим; 1 - режим настройки
+flag			var byte	'Кнопка нажата/отпущена
+MODE            	VAR BYTE	'Режим работы коробки
+AMOUNT_MED      	var byte	'
+AMOUNT_AMMO     	var byte	'
+AMOUNT_AIDKIT   	var byte	'
+CAP_MED			var byte	'Кол-во выдаваемых за раз жизней
+CAP_AMMO		var byte	'Кол-во выдаваемых за раз патронов
+RATE_MED        	var byte	'Время удержания кнопки в режиме Медика
+RATE_AMMO       	var byte	'Время удержания кнопки в режиме Ящик с патронами
+RATE_AIDKIT     	var byte	'Время удержания кнопки в режиме конечной аптечки
+RATE_AIDKIT_INF 	var byte	'Время удержания кнопки в режиме бесконечной аптечки
 
 '*************************************************************
 '******************** PIN ASSIGNMENTS ************************
@@ -95,7 +101,7 @@ IOCA =  %000000				'disable PORTA.0 Int On Change
 
 input PORTA.2
 
-TRISC = %000000    				'set PortC directions
+TRISC = %00000				'set PortC directions
 	
 PORTA = %000000				'обнуление значений PortA
 PORTC = %000000    			'обнуление значений PortC
@@ -137,6 +143,7 @@ main:
 '-- выводим на индикаторы значение текущего режима коробки ------
 '----------------------------------------------------------------
 
+setup = 0
 amount = mode
 gosub print_current
 high PIEZO          
@@ -154,8 +161,8 @@ gosub clear_screen
 select case mode
 	case 1
 		message_ID = 0                          	'Идентификатор медика
-		message = cap_med				'Устанавливаем количество здоровья, посылаемое за раз
-		amount = amount_med		'Устаналиваем ёмкость сумки
+		lookup cap_med,[1,5,10,25,50],message		'Устанавливаем количество здоровья, посылаемое за раз
+		amount = amount_med				'Устаналиваем ёмкость сумки
 		rate = rate_med * 100
 		goto universal_box
         case 2
@@ -264,47 +271,15 @@ end select
 settings:						'Предварительные настройки
 
 high dot1						'Зажигаем правую точку для индикации режима настройки
+setup = 1
+addr = 0
 amount = mode
+min_value = 1
+max_value = 4
+inc = 1
+gosub common_settings
+mode = amount
     
-setting_mode:
-
-'----------------------------------------------------------------
-'-- Выводим на дисплей значение текущего режима -----------------
-'----------------------------------------------------------------
-
-gosub clear_screen
-gosub print_current
-
-set_mode_btn_loop:
-
-'----------------------------------------------------------------
-'-- Если кнопка нажата менее 1 сек, то увеличиваем значение -----
-'-- текущего режима. Если кнопка нажата 1 сек, то записываем ----
-'-- текущее значение режима в память ----------------------------
-'----------------------------------------------------------------
-
-if btn = 0 then
-	FOR temp = 1 to 100			
-		IF btn = 1 THEN 
-			if amount = 4 then 
-				amount = 1
-			else 
-				amount = amount + 1
-                	endif
-                	goto setting_mode
-            	endif
-            	PAUSE 10
-	NEXT temp
-	mode = amount
-	write 0,amount
-	high PIEZO          
-	PAUSE 200          
-	LOW PIEZO
-	goto pre_setting_amount
-endif
-nap 3
-goto set_mode_btn_loop
-
 '----------------------------------------------------------------
 '-- Процедура настройки количества медпакетов, патронов, --------
 '-- возрождений (в зависимости от выбранного режима) ------------
@@ -312,6 +287,10 @@ goto set_mode_btn_loop
 
 pre_setting_amount:
 
+addr = mode
+min_value = 5
+max_value = 95
+inc = 5
 select case mode
 	case 1                          		'Режим сумки медика
 		amount = amount_med
@@ -322,47 +301,7 @@ select case mode
 	case 4                          		'Точка возрождения бесконечная
 		goto pre_setting_rate                          
 end select         
-
-setting_amount:
-
-'----------------------------------------------------------------
-'-- Выводим на дисплей записанное в памяти значение количества --
-'-- медпакетов, патронов, возрождений (в зависимости от ---------
-'-- выбранного режима) ------------------------------------------
-'----------------------------------------------------------------
-
-gosub clear_screen
-gosub print_current
-pause 200
-    
-set_amount_btn_loop:
-
-'----------------------------------------------------------------
-'-- Если кнопка нажата менее 1 сек, то увеличиваем значение -----
-'-- количества на 5. Если кнопка нажата 1 сек, то записываем ----
-'-- текущее значение количества в память ------------------------
-'----------------------------------------------------------------
-
-if btn = 0 then
-	FOR temp = 1 to 100			
-		IF btn = 1 THEN 
-			if amount >= 99 then 
-				amount = 1
-                	else 
-				amount = amount + 1
-                	endif
-                goto setting_amount
-            	endif
-		PAUSE 10
-        NEXT temp
-        write mode,amount
-        high PIEZO          
-        PAUSE 200          
-        LOW PIEZO
-        goto pre_setting_rate
-endif
-nap 3
-goto set_amount_btn_loop
+gosub common_settings
 
 '----------------------------------------------------------------	
 '-- Процедура настройки длительности нажатия кнопки -------------
@@ -370,6 +309,10 @@ goto set_amount_btn_loop
 
 pre_setting_rate:
 
+addr = mode + 3
+min_value = 0
+max_value = 5
+inc = 1
 select case mode
 	case 1                          		'Режим сумки медика
 		amount = rate_med
@@ -380,49 +323,7 @@ select case mode
 	case 4                          		'Точка возрождения бесконечная
 		amount = rate_aidkit_inf                          
 end select
-
-setting_rate:
-
-'----------------------------------------------------------------
-'-- Выводим на дисплей записанное в памяти значение количества --
-'-- медпакетов, патронов, возрождений (в зависимости от ---------
-'-- выбранного режима) ------------------------------------------
-'----------------------------------------------------------------
-
-gosub clear_screen
-gosub print_current
-pause 200
-    
-set_rate_btn_loop:
-
-'----------------------------------------------------------------
-'-- Если кнопка нажата менее 1 сек, то увеличиваем значение -----
-'-- количества на 5. Если кнопка нажата 1 сек, то записываем ----
-'-- текущее значение количества в память ------------------------
-'----------------------------------------------------------------
-
-if btn = 0 then
-	FOR temp = 1 to 100			'
-		IF btn = 1 THEN 
-			if amount = 5 then 
-				amount = 0
-			else 
-				amount = amount + 1
-			endif
-			goto setting_rate
-		endif
-		PAUSE 10
-        NEXT temp
-        temp = mode + 3
-        write temp,amount
-        high PIEZO          
-        PAUSE 200          
-        LOW PIEZO
-        goto pre_setting_capacity
-endif
-nap 3
-goto set_rate_btn_loop
-
+gosub common_settings
 
 '----------------------------------------------------------------	
 '-- Процедура настройки количества выдаваемых за раз ------------
@@ -431,117 +332,23 @@ goto set_rate_btn_loop
 
 pre_setting_capacity:
 
+addr = mode + 7
 select case mode
 	case 1                          		'Режим сумки медика
 		amount = cap_med
-		max_cap = 5
+		min_value = 0
+		max_value = 4				' 0 = 1; 1 = 5; 2 = 10; 3 = 25; 4 = 50
 		inc = 1
 	case 2                          		'Режим ящика с патронами
 		amount = cap_ammo
-		max_cap = 90
+		min_value = 30
+		max_value = 90
 		inc = 30
-	case 3                          		'Точка возрождения с количеством
+	case 3,4                          		'Точка возрождения
 		goto end_of_settings
-	case 4                          		'Точка возрождения бесконечная
-		goto end_of_settings                          
 end select
+gosub common_settings
 
-setting_capacity:
-
-'----------------------------------------------------------------
-'-- Выводим на дисплей записанное в памяти значение количества --
-'-- медпакетов, патронов, возрождений (в зависимости от ---------
-'-- выбранного режима) ------------------------------------------
-'----------------------------------------------------------------
-
-gosub clear_screen
-gosub print_current
-pause 200
-    
-set_cap_btn_loop:
-
-'----------------------------------------------------------------
-'-- Если кнопка нажата менее 1 сек, то увеличиваем значение -----
-'-- количества на 5. Если кнопка нажата 1 сек, то записываем ----
-'-- текущее значение количества в память ------------------------
-'----------------------------------------------------------------
-
-if btn = 0 then
-	FOR temp = 1 to 100			'
-		IF btn = 1 THEN 
-			if amount >= max_cap then 
-				amount = inc
-			else 
-				amount = amount + inc
-			endif
-			goto setting_capacity
-		endif
-		PAUSE 10
-	NEXT temp
-	temp = mode + 7
-	write temp,amount
-	goto end_of_settings
-endif
-nap 3
-goto set_cap_btn_loop
-
-'----------------------------------------------------------------	
-'-- Процедура настройки количества выдаваемых за раз ------------
-'-- здоровья или патронов, в зависимости от режима --------------
-'----------------------------------------------------------------
-
-'pre_setting_step:
-
-'    select case mode
-'        case 1                          		'Режим сумки медика
-'            amount = step_med
-'        case 2                          		'Режим ящика с патронами
-'            amount = step_ammo
-'        case 3                          		'Точка возрождения с количеством
-'            amount = step_aidkit
-'        case 4                          		'Точка возрождения бесконечная
-'            goto end_of_settings                          
-'    end select
-
-'setting_step:
-
-'----------------------------------------------------------------
-'-- Выводим на дисплей записанное в памяти значение количества --
-'-- медпакетов, патронов, возрождений (в зависимости от ---------
-'-- выбранного режима) ------------------------------------------
-'----------------------------------------------------------------
-
-'    gosub clear_screen
-'    gosub print_current
-'    pause 200
-    
-'set_step_btn_loop:
-
-'----------------------------------------------------------------
-'-- Если кнопка нажата менее 1 сек, то увеличиваем значение -----
-'-- количества на 5. Если кнопка нажата 1 сек, то записываем ----
-'-- текущее значение количества в память ------------------------
-'----------------------------------------------------------------
-
-'    if btn = 0 then
-'  	    FOR temp = 1 to 100			'
-'            IF btn = 1 THEN 
-'                if amount = 10 then 
-'                    amount = 0
-'                else 
-'                    amount = amount + 1
-'                endif
-'                goto setting_step
-'            endif
-'            PAUSE 10
-'        NEXT temp
-'        temp = mode + 9
-'        write temp,amount
-'        goto end_of_settings
-'    endif
-'    nap 3
-'	goto set_step_btn_loop	
-	
 '----------------------------------------------------------------
 '-- Конец  процедуры настройки универсальной коробки ------------
 '----------------------------------------------------------------
@@ -551,6 +358,58 @@ end_of_settings:
 gosub clear_screen
 high dot2
 goto shutdown 
+
+'----------------------------------------------------------------
+'-- Общая процедура настройки устройства ------------------------
+'----------------------------------------------------------------
+
+common_settings:
+
+'----------------------------------------------------------------
+'-- Выводим на дисплей записанное в памяти значение количества --
+'-- медпакетов, патронов, возрождений (в зависимости от ---------
+'-- выбранного режима) ------------------------------------------
+'----------------------------------------------------------------
+
+gosub clear_screen
+gosub print_current
+pause 200
+    
+common_settings_loop:
+
+'----------------------------------------------------------------
+'-- Если кнопка нажата менее 1 сек, то увеличиваем значение -----
+'-- количества на значение INC. Если кнопка нажата 1 сек, то ----
+'-- проверяем соответствие установленного значения уже ----------
+'-- записанному в ЕЕПРОМ: если отличается, то пишем в ЕЕПРОМ ----
+'-- по соответствуюшему адресу ----------------------------------
+'----------------------------------------------------------------
+
+if btn = 0 then
+	FOR temp = 1 to 100			'
+		IF btn = 1 THEN 
+			if amount >= max_value then 
+				amount = min_value
+			else 
+				amount = amount + inc
+			endif
+			
+			goto common_settings
+		endif
+		PAUSE 10
+	NEXT temp
+	read addr,def_value
+	if amount <> def_value then
+		write addr,amount
+	endif
+	high piezo
+	pause 200
+	low piezo
+	return
+else
+	nap 3
+	goto common_settings_loop
+endif
 
 '---------------------------------------------------------------------------
 
@@ -569,9 +428,6 @@ read 6,rate_aidkit      		'Длительность нажатия кнопки 
 read 7,rate_aidkit_inf  		'Длительность нажатия кнопки для точки возрождения бесконечной (MODE+3)
 read 8,cap_med				'Количество единиц, выдаваемых сумкой медика за раз (mode+7)
 read 9,cap_ammo				'Количество единиц, выдаваемых ящиком патронов за раз (mode+7)
-'	read 10,step_med		'Шаг в настройке ёмкости сумки медика (mode+9)
-'	read 11,step_ammo		'Шаг в настройке ёмкости ящика с патронами (mode+9)
-'	read 12,step_aidkit		'Шаг в настройке ёмкости точки возрождения с количеством срабатываний (mode+9)	
 return        
 
 '---------------------------------------------------------------------------	
@@ -587,7 +443,13 @@ return
 print_current:  			'Установка на индикаторах текущего значения переменной AMOUNT
 
 temp = 0
-FOR TEMP = 1 to amount
+if (setup = 1) and (addr = 8) then
+	lookup amount,[1,5,10,25,50],temp_amount
+	temp2 = temp_amount
+else
+	temp2 = amount
+endif
+FOR TEMP = 1 to temp2
 	HIGH CLCK
 	LOW CLCK
 NEXT TEMP
